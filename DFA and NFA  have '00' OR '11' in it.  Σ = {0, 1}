@@ -1,0 +1,121 @@
+#include <iostream>
+#include <string>
+#include <map>
+#include <vector>
+
+// Enumeration for DFA states
+enum State {
+    Q0,    // Start state: No pattern found. (0)
+    Q0_P,  // Potential '00': Last character was '0'. (1)
+    Q1_P,  // Potential '11': Last character was '1'. (2)
+    QF     // Final state: '00' or '11' found. (3)
+};
+
+// Function to get the next state based on the current state and input symbol
+State getNextState(State currentState, char input) {
+    // The transition function (Delta) of the minimal DFA
+    switch (currentState) {
+        case Q0: // Start: No pattern started
+            if (input == '0') return Q0_P;
+            if (input == '1') return Q1_P;
+            break; // Should not happen for Sigma={0, 1}
+
+        case Q0_P: // Last char was '0'
+            if (input == '0') return QF; // Found '00'!
+            if (input == '1') return Q1_P; // Pattern broken, restart with '1'
+            break;
+
+        case Q1_P: // Last char was '1'
+            if (input == '0') return Q0_P; // Pattern broken, restart with '0'
+            if (input == '1') return QF; // Found '11'!
+            break;
+
+        case QF: // Accepted state (trapped)
+            return QF; // Stays in the final state
+    }
+    // For invalid input symbols (not '0' or '1'), return the current state
+    return currentState;
+}
+
+// Function to check if a state is a final (accepting) state
+bool isFinalState(State currentState) {
+    return currentState == QF;
+}
+
+void simulateDFA(const std::string& input) {
+    State currentState = Q0; // Start at Q0
+    std::cout << "Input string: " << input << "\n";
+    std::cout << "Starting state: Q0\n";
+    
+    // Process each character in the input string
+    for (size_t i = 0; i < input.length(); ++i) {
+        char symbol = input[i];
+        
+        // Basic error check for alphabet
+        if (symbol != '0' && symbol != '1') {
+            std::cerr << "Error: Invalid symbol '" << symbol << "' at position " << i + 1 
+                      << ". DFA only accepts {0, 1}.\n";
+            return;
+        }
+
+        State nextState = getNextState(currentState, symbol);
+        
+        // Print the transition
+        std::cout << "  Reading '" << symbol << "': Transition from " 
+                  << currentState << " to " << nextState << "\n";
+                  
+        currentState = nextState;
+    }
+
+    // Check if the final state is an accepting state
+    if (isFinalState(currentState)) {
+        std::cout << "\nResult: ACCEPTED (String contains '00' or '11').\n";
+    } else {
+        std::cout << "\nResult: REJECTED (String does not contain '00' or '11').\n";
+    }
+}
+
+// Helper function to convert enum to string for clearer output
+std::ostream& operator<<(std::ostream& os, State s) {
+    switch (s) {
+        case Q0:   os << "q0"; break;
+        case Q0_P: os << "q_0"; break;
+        case Q1_P: os << "q_1"; break;
+        case QF:   os << "qF"; break;
+        default:   os << "Unknown";
+    }
+    return os;
+}
+
+int main() {
+    // Set up state descriptions for output
+    std::cout << "Minimal DFA Simulation for L = (0|1)*(00|11)(0|1)*\n";
+    std::cout << "------------------------------------------------------\n";
+    std::cout << "States:\n";
+    std::cout << "  q0: Initial state, nothing relevant found.\n";
+    std::cout << "  q_0: Found '0', potential '00'.\n";
+    std::cout << "  q_1: Found '1', potential '11'.\n";
+    std::cout << "  qF: Final state, '00' or '11' found.\n";
+    std::cout << "------------------------------------------------------\n";
+
+    // Test cases
+    simulateDFA("1001");    // ACCEPTED (contains 00)
+    std::cout << "\n---\n";
+    simulateDFA("0110");    // ACCEPTED (contains 11)
+    std::cout << "\n---\n";
+    simulateDFA("010101");  // REJECTED (alternating)
+    std::cout << "\n---\n";
+    simulateDFA("111");      // ACCEPTED (contains 11)
+    std::cout << "\n---\n";
+    simulateDFA("0");        // REJECTED
+    
+    // User input section
+    std::cout << "\n------------------------------------------------------\n";
+    std::string userInput;
+    std::cout << "Enter a string over {0, 1} to test the DFA: ";
+    if (std::cin >> userInput) {
+        simulateDFA(userInput);
+    }
+
+    return 0;
+}
